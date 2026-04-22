@@ -1,290 +1,133 @@
 <!DOCTYPE html>
 <html lang="en-us">
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport"
-          content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity Web Player | Qurbani Run</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico" />
-
-    <style>
-          :root {
-              --bg: #000;
-              --text: #fff;
-              --bar-bg: rgba(255, 255, 255, 0.14);
-              --bar-fill: linear-gradient(90deg, #22c55e, #84cc16);
-          }
-
-          * {
-              box-sizing: border-box;
-              -webkit-tap-highlight-color: transparent;
-          }
-
-          html,
-          body {
-              margin: 0;
-              padding: 0;
-              width: 100%;
-              height: 100%;
-              overflow: hidden;
-              background: var(--bg);
-              color: var(--text);
-              font-family: Arial, Helvetica, sans-serif;
-          }
-
-          body {
-              position: fixed;
-              inset: 0;
-          }
-
-          #unity-container {
-              position: fixed;
-              inset: 0;
-              width: 100vw;
-              height: 100vh;
-              height: 100dvh;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: #000;
-              overflow: hidden;
-          }
-
-          /*
-          Portrait game frame:
-          - Always keeps a 9:16 portrait ratio
-          - Uses full viewport height when possible
-          - On wide desktop screens it stays centered with side space
-        */
-          #unity-stage {
-              position: relative;
-              width: min(100vw, calc(100dvh * 9 / 16));
-              height: min(100dvh, calc(100vw * 16 / 9));
-              max-width: 100vw;
-              max-height: 100dvh;
-              aspect-ratio: 9 / 16;
-              background: #000;
-              overflow: hidden;
-          }
-
-          #unity-canvas {
-              position: absolute;
-              inset: 0;
-              width: 100% !important;
-              height: 100% !important;
-              display: block;
-              background: #000;
-              outline: none;
-          }
-
-          #unity-loading-bar {
-              position: absolute;
-              left: 50%;
-              top: 50%;
-              transform: translate(-50%, -50%);
-              width: min(70%, 320px);
-              z-index: 20;
-              text-align: center;
-              pointer-events: none;
-          }
-
-          #unity-logo {
-              display: none;
-          }
-
-          #unity-progress-bar-empty {
-              width: 100%;
-              height: 14px;
-              border-radius: 999px;
-              overflow: hidden;
-              background: var(--bar-bg);
-              box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-          }
-
-          #unity-progress-bar-full {
-              width: 0%;
-              height: 100%;
-              border-radius: 999px;
-              background: var(--bar-fill);
-              transition: width 0.2s ease;
-          }
-
-          #unity-warning {
-              position: absolute;
-              top: max(12px, env(safe-area-inset-top));
-              left: 50%;
-              transform: translateX(-50%);
-              width: min(92%, 420px);
-              z-index: 30;
-              display: none;
-          }
-
-              #unity-warning > div {
-                  margin-bottom: 8px;
-                  border-radius: 12px;
-                  padding: 10px 12px;
-                  font-size: 14px;
-                  line-height: 1.4;
-                  color: #111;
-              }
-
-          .rotate-hint {
-              position: absolute;
-              inset: 0;
-              z-index: 40;
-              display: none;
-              align-items: center;
-              justify-content: center;
-              text-align: center;
-              padding: 24px;
-              background: rgba(0, 0, 0, 0.88);
-              color: #fff;
-              font-size: 18px;
-              font-weight: 700;
-          }
-
-          /* Show hint on phones/tablets if device is in landscape */
-          @media (orientation: landscape) and (max-width: 1024px) {
-              .rotate-hint.show-on-mobile-landscape {
-                  display: flex;
-              }
-          }
-    </style>
-</head>
-
-<body>
-    <div id="unity-container">
-        <div id="unity-stage">
-            <canvas id="unity-canvas" tabindex="-1"></canvas>
-
-            <div id="unity-loading-bar">
-                <div id="unity-logo"></div>
-                <div id="unity-progress-bar-empty">
-                    <div id="unity-progress-bar-full"></div>
-                </div>
-            </div>
-
-            <div id="unity-warning"></div>
-
-            <div class="rotate-hint show-on-mobile-landscape">
-                Please rotate your device to portrait mode
-            </div>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
         </div>
+      </div>
+      <div id="unity-warning"> </div>
+      <div id="unity-footer">
+        <div id="unity-logo-title-footer"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">Qurbani Run</div>
+      </div>
     </div>
-
     <script>
-        const canvas = document.querySelector("#unity-canvas");
-        const stage = document.querySelector("#unity-stage");
-        const loadingBar = document.querySelector("#unity-loading-bar");
-        const progressBarFull = document.querySelector("#unity-progress-bar-full");
-        const warningBanner = document.querySelector("#unity-warning");
+      var canvas = document.querySelector("#unity-canvas");
 
-        function unityShowBanner(msg, type) {
-            function updateBannerVisibility() {
-                warningBanner.style.display = warningBanner.children.length ? "block" : "none";
-            }
-
-            const div = document.createElement("div");
-            div.innerHTML = msg;
-
-            if (type === "error") {
-                div.style.background = "#ef4444";
-                div.style.color = "#fff";
-            } else if (type === "warning") {
-                div.style.background = "#facc15";
-                div.style.color = "#111";
-                setTimeout(() => {
-                    if (div.parentNode === warningBanner) {
-                        warningBanner.removeChild(div);
-                        updateBannerVisibility();
-                    }
-                }, 5000);
-            } else {
-                div.style.background = "#e5e7eb";
-                div.style.color = "#111";
-                setTimeout(() => {
-                    if (div.parentNode === warningBanner) {
-                        warningBanner.removeChild(div);
-                        updateBannerVisibility();
-                    }
-                }, 5000);
-            }
-
-            warningBanner.appendChild(div);
+      // Shows a temporary message banner/ribbon for a few seconds, or
+      // a permanent error message on top of the canvas if type=='error'.
+      // If type=='warning', a yellow highlight color is used.
+      // Modify or remove this function to customize the visually presented
+      // way that non-critical warnings and error messages are presented to the
+      // user.
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
             updateBannerVisibility();
+          }, 5000);
         }
+        updateBannerVisibility();
+      }
 
-        const buildUrl = "Build";
-        const loaderUrl = buildUrl + "/Web.loader.js";
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/Web.loader.js";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/Web.data.unityweb",
+        frameworkUrl: buildUrl + "/Web.framework.js.unityweb",
+        codeUrl: buildUrl + "/Web.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "Qurbani Run",
+        productVersion: "0.1.0",
+        showBanner: unityShowBanner,
+        // errorHandler: function(err, url, line) {
+        //    alert("error " + err + " occurred at line " + line);
+        //    // Return 'true' if you handled this error and don't want Unity
+        //    // to process it further, 'false' otherwise.
+        //    return true;
+        // },
+      };
 
-        const config = {
-            arguments: [],
-            dataUrl: buildUrl + "/Web.data.unityweb",
-            frameworkUrl: buildUrl + "/Web.framework.js.unityweb",
-            codeUrl: buildUrl + "/Web.wasm.unityweb",
-            streamingAssetsUrl: "StreamingAssets",
-            companyName: "DefaultCompany",
-            productName: "Qurbani Run",
-            productVersion: "0.1.0",
-            showBanner: unityShowBanner,
-        };
+      // By default, Unity keeps WebGL canvas render target size matched with
+      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
+      // Set this to false if you want to decouple this synchronization from
+      // happening inside the engine, and you would instead like to size up
+      // the canvas DOM size and WebGL render target sizes yourself.
+      // config.matchWebGLToCanvasSize = false;
 
-        function resizeCanvas() {
-            const rect = stage.getBoundingClientRect();
-            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // If you would like all file writes inside Unity Application.persistentDataPath
+      // directory to automatically persist so that the contents are remembered when
+      // the user revisits the site the next time, uncomment the following line:
+      // config.autoSyncPersistentDataPath = true;
+      // This autosyncing is currently not the default behavior to avoid regressing
+      // existing user projects that might rely on the earlier manual
+      // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
+      // expected to change.
 
-            canvas.style.width = rect.width + "px";
-            canvas.style.height = rect.height + "px";
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // Mobile device style: fill the whole browser client area with the game canvas:
 
-            canvas.width = Math.round(rect.width * dpr);
-            canvas.height = Math.round(rect.height * dpr);
-        }
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+        document.querySelector("#unity-container").className = "unity-mobile";
+        canvas.className = "unity-mobile";
 
-        resizeCanvas();
-        window.addEventListener("resize", resizeCanvas);
-        window.addEventListener("orientationchange", () => {
-            setTimeout(resizeCanvas, 200);
-        });
+        // To lower canvas resolution on mobile devices to gain some
+        // performance, uncomment the following line:
+        // config.devicePixelRatio = 1;
 
-        loadingBar.style.display = "block";
 
-        const script = document.createElement("script");
-        script.src = loaderUrl;
-        script.onload = () => {
-            createUnityInstance(canvas, config, (progress) => {
-                progressBarFull.style.width = (progress * 100) + "%";
-            })
-                .then((unityInstance) => {
-                    loadingBar.style.display = "none";
-                    resizeCanvas();
+      } else {
+        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
+        canvas.style.width = "960px";
+        canvas.style.height = "600px";
+      }
 
-                    // Keep canvas correct after Unity is ready
-                    window.addEventListener("resize", () => {
-                        resizeCanvas();
-                    });
+      document.querySelector("#unity-loading-bar").style.display = "block";
 
-                    // Optional: try to enter fullscreen on first user interaction
-                    // Only browser fullscreen; portrait monitor orientation itself cannot be forced on desktop
-                    const requestFullscreenOnce = () => {
-                        const elem = document.documentElement;
-                        if (!document.fullscreenElement && elem.requestFullscreen) {
-                            elem.requestFullscreen().catch(() => { });
-                        }
-                        window.removeEventListener("pointerdown", requestFullscreenOnce);
-                    };
-                    window.addEventListener("pointerdown", requestFullscreenOnce, { once: true });
-                })
-                .catch((message) => {
-                    alert(message);
-                });
-        };
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+              }).then((unityInstance) => {
+                document.querySelector("#unity-loading-bar").style.display = "none";
+                document.querySelector("#unity-fullscreen-button").onclick = () => {
+                  unityInstance.SetFullscreen(1);
+                };
 
-        script.onerror = () => {
-            unityShowBanner("Failed to load Unity loader script.", "error");
-        };
+              }).catch((message) => {
+                alert(message);
+              });
+            };
 
-        document.body.appendChild(script);
+      document.body.appendChild(script);
+
     </script>
-</body>
+  </body>
 </html>
